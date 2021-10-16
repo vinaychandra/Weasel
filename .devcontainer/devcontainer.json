@@ -1,0 +1,35 @@
+{
+  "name": "Weasel - Dev Environment",
+  "extensions": [
+    "cschleiden.vscode-github-actions",
+    "matklad.rust-analyzer",
+    "panicbit.cargo",
+    "serayuzgur.crates",
+    "vadimcn.vscode-lldb"
+  ],
+  "dockerFile": "Dockerfile",
+  "settings": {
+    "editor.formatOnSave": true,
+    "files.exclude": {
+      "**/LICENSE": true
+    },
+    "terminal.integrated.profiles.linux": {
+      "bash": {
+        "path": "bash",
+        "icon": "terminal-bash"
+      },
+      "zsh": {
+        "path": "zsh"
+      },
+      "tmux": {
+        "path": "tmux",
+        "icon": "terminal-tmux"
+      },
+      "pwsh": {
+        "path": "pwsh",
+        "icon": "terminal-powershell"
+      }
+    },
+    "terminal.integrated.defaultProfile.linux": "zsh"
+  }
+}
