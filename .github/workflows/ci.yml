@@ -8,36 +8,48 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+        with:
+          submodules: true
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
           toolchain: nightly
           override: true
       - uses: Swatinem/rust-cache@v1
-      - uses: actions-rs/cargo@v1
-        with:
-          command: check
+      - name: Cargo bootstrap
+        run: cargo bootstrap
+        working-directory: ./thirdparty/pest
+      - name: Cargo check
+        run: cargo check
+        working-directory: ./crates
 
   test:
     name: Test Suite
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+        with:
+          submodules: true
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
           toolchain: nightly
           override: true
       - uses: Swatinem/rust-cache@v1
-      - uses: actions-rs/cargo@v1
-        with:
-          command: test
+      - name: Cargo bootstrap
+        run: cargo bootstrap
+        working-directory: ./thirdparty/pest
+      - name: Cargo test
+        run: cargo test
+        working-directory: ./crates
 
   fmt:
     name: Rustfmt
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+        with:
+          submodules: true
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
@@ -45,16 +57,20 @@ jobs:
           override: true
       - run: rustup component add rustfmt
       - uses: Swatinem/rust-cache@v1
-      - uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: --all -- --check
+      - name: Cargo bootstrap
+        run: cargo bootstrap
+        working-directory: ./thirdparty/pest
+      - name: Cargo fmt
+        run: cargo fmt --all -- --check
+        working-directory: ./crates
 
   clippy:
     name: Clippy
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+        with:
+          submodules: true
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
@@ -62,7 +78,9 @@ jobs:
           override: true
       - run: rustup component add clippy
       - uses: Swatinem/rust-cache@v1
-      - uses: actions-rs/cargo@v1
-        with:
-          command: clippy
-          args: -- -D warnings
+      - name: Cargo bootstrap
+        run: cargo bootstrap
+        working-directory: ./thirdparty/pest
+      - name: Cargo clippy
+        run: cargo clippy -- -D warnings
+        working-directory: ./crates

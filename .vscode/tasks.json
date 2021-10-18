@@ -2,9 +2,21 @@
   "version": "2.0.0",
   "tasks": [
     {
+      "label": "cargo bootstrap",
+      "type": "shell",
+      "command": "cargo bootstrap",
+      "options": {
+        "cwd": "${workspaceFolder}/thirdparty/pest"
+      }
+    },
+    {
       "label": "cargo build",
       "type": "shell",
       "command": "cargo build",
+      "options": {
+        "cwd": "${workspaceFolder}/crates"
+      },
+      "dependsOn": ["cargo bootstrap"],
       "group": {
         "kind": "build",
         "isDefault": true
@@ -14,6 +26,10 @@
       "label": "cargo test",
       "type": "shell",
       "command": "cargo test",
+      "dependsOn": ["cargo bootstrap"],
+      "options": {
+        "cwd": "${workspaceFolder}/crates"
+      },
       "group": {
         "kind": "test",
         "isDefault": true
