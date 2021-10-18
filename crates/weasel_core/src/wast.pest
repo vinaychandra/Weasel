@@ -1,0 +1,119 @@
+// MODULES
+
+idx                 = { nat | id }
+type_identifier     = { "(" ~ "type" ~ id? ~ func_type ~ ")" }  // "type"
+type_use            = { ("(" ~ "type" ~ idx ~ ")")? ~ param* ~ result* }
+
+import              = { "(" ~ "import" ~ string ~ string ~ import_desc ~ ")" }
+import_desc         = { ( "(" ~ "func" ~ id? ~ type_use ~ ")" ) | ( "(" ~ "table" ~ id? ~ table_type ~ ")") | ( "(" ~ "memory" ~ id? ~ mem_type ~ ")") | ( "(" ~ "global" ~ id? ~ global_type ~ ")") }
+
+local               = { "(" ~ "local" ~ id? ~ value_type ~ ")" | "(" ~ "local" ~ value_type* ~ ")" }
+
+func        = { "(" ~ "func" ~ id? ~ "(" ~ "export" ~ string ~ ")"* ~ "(" ~ "import" ~ string ~ string ~ ")" ~ type_use ~ ")" |
+                "(" ~ "func" ~ id? ~ "(" ~ "export" ~ string ~ ")"* ~ type_use ~ local* ~ instr* ~ ")" }
+
+table       = { "(" ~ "table" ~ id? ~ table_type ~ ")" } // TODO : abbr
+memory      = { "(" ~ "memory" ~ id? ~ mem_type ~ ")" } // TODO : abbr
+global      = { "(" ~ "global" ~ id? ~ global_type ~ expr ~ ")" } // TODO : abbr
+
+export_desc = { "(" ~ "func" ~ idx ~ ")" | "(" ~ "table" ~ idx ~ ")" | "(" ~ "memory" ~ idx ~ ")" | "(" ~ "global" ~ idx ~ ")" }
+export      = { "(" ~ "export" ~ string ~ export_desc ~ ")" }
+
+start       = { "(" ~ "start" ~ idx ~ ")" }
+
+elem_expr   = { "(" ~ "item" ~ expr ~ ")" }
+table_use   = { "(" ~ "table" ~ idx ~ ")" }
+elem_list   = { ref_type ~ elem_expr* }
+elem        = { "(" ~ "elem" ~ id? ~ elem_list ~ ")" |
+                "(" ~ "elem" ~ id? ~ table_use ~ "(" ~ "offset" ~ expr ~ ")" ~ elem_list ~ ")" |
+                "(" ~ "elem" ~ id? ~ "declare" ~ elem_list ~ ")" } // TODO : abbr
+
+mem_use     = { "(" ~ "memory" ~ idx ~ ")" }
+data_string = { string* }
+data        = { "(" ~ "data" ~ id? ~ data_string ~ ")" |
+                "(" ~ "data" ~ id? ~ mem_use ~ "(" ~ "offset" ~ expr ~ ")" ~ data_string ~ ")" } // TODO : abbr
+
+module_field    = { type_identifier | import | func | table | memory | global | export | elem | data | start }
+module          = { "(" ~ "module" ~ id? ~ module_field* ~ ")" | module_field+ }
+module_file     = { SOI ~ module+ ~ EOI }
+
+// INSTRUCTIONS
+label   = { id? }
+instr   = { plain_instr | block_instr }
+
+block_type      = { result | type_use }
+block_instr     = { ("block" ~ label ~ block_type ~ instr* ~ "end" ~ id?)
+                    | ("loop" ~ label ~ block_type ~ instr* ~ "end" ~ id?)
+                    | ("if" ~ label ~ block_type ~ instr* ~ ("else" ~ id? ~ instr*)? ~ "end" ~ id?) }
+
+control_plain_instr         = { "unreachable" | "nop" | ("br" ~ idx) | ("br_if" ~ idx) | ("br_table" ~ idx ~ idx) | "return" | ("call" ~ idx) | ("call_indirect" ~ idx? ~ type_use) }
+ref_plain_instr             = { ("ref.null" ~ heap_type) | "ref.is_null" | ("ref.func" ~ idx)  }
+parametetric_plain_instr    = { "drop" | ("select" ~ result*) }
+variable_plain_instr        = { "local.get" ~ idx | "local.set" ~ idx | "local.tee" ~ idx | "global.get" ~ idx | "global.set" ~ idx }
+table_plain_instr           = { "table.get" ~ idx? | "table.set" ~ idx? | "table.size" ~ idx? | "table.grow" ~ idx? | "table.fill" ~ idx? | "table.copy" ~ (idx ~ idx)? |
+                                "table.init" ~ idx? ~ idx | "elem.drop" ~ idx }
+
+offset  = ${ "offset=" ~ nat }
+align   = ${ "align=" ~ nat }
+mem_arg = { offset? ~ align? }
+memory_plain_instr_inner    = ${ num_type ~ ".load" | int_type ~ ".load8_s" | int_type ~ ".load8_u" | int_type ~ ".load16_s" | int_type ~ ".load16_u" | "i64.load32_s" | "i64.load32_u" |
+                                 num_type ~ ".store" | int_type ~ ".store8" | int_type ~ ".store16" | "i64.store32" }
+memory_plain_instr          = { memory_plain_instr_inner ~ mem_arg | "memory.size" | "memory.grow" | "memory.fill" | "memory.copy" | "memory.init" ~ idx | "data.drop" ~ idx }
+
+numeric_plain_instr   = ${ num_type ~ ".const" | int_type ~ ".clz" | int_type ~ ".ctz" | int_type ~ ".popcnt" | int_type ~ ".add" | int_type ~ ".sub" | int_type ~ ".mul" |
+                                int_type ~ ".div_s" | int_type ~ ".div_u" | int_type ~ ".rem_s" | int_type ~ ".rem_u" | int_type ~ ".and" | int_type ~ ".or" | int_type ~ ".xor" | 
+                                int_type ~ ".shl" | int_type ~ ".shr_s" | int_type ~ ".shr_u" | int_type ~ ".rotl" | int_type ~ ".rotr" |
+                                float_type ~ ".abs" | float_type ~ ".neg" | float_type ~ ".ceil" | float_type ~ ".floor" | float_type ~ ".trunc" | float_type ~ ".nearest" | float_type ~ ".sqrt" |
+                                float_type ~ ".add" | float_type ~ ".sub" | float_type ~ ".mul" | float_type ~ ".div" | float_type ~ ".min" | float_type ~ ".max" | float_type ~ ".copysign" | 
+                                int_type ~ ".eqz" | int_type ~ ".eq" | int_type ~ ".ne" | int_type ~ ".lt_s" | int_type ~ ".lt_u" | int_type ~ ".le_s" | int_type ~ ".le_u" |
+                                int_type ~ ".gt_s" | int_type ~ ".gt_u" | int_type ~ ".ge_s" | int_type ~ ".ge_u" |
+                                float_type ~ ".eq" | float_type ~ ".ne" | float_type ~ ".lt" | float_type ~ ".le" | float_type ~ ".gt" | float_type ~ ".ge" |
+                                "i32.wrap_i64" | "i64.extend_i32_s" | "i64.extend_i32_u" |
+                                int_type ~ ".trunc_f32_s" | int_type ~ ".trunc_f32_u" | int_type ~ ".trunc_f64_s" | int_type ~ ".trunc_f64_u" |
+                                int_type ~ ".trunc_sat_f32_s" | int_type ~ ".trunc_sat_f32_u" | int_type ~ ".trunc_sat_f64_s" | int_type ~ ".trunc_sat_f64_u" |
+                                float_type ~ ".convert_i32_s" | float_type ~ ".convert_i32_u" | float_type ~ ".convert_i64_s" | float_type ~ ".convert_i64_u" |
+                                "f32.demote_f64" | "f64.promote_f32" |
+                                "i32.reinterpret_f32" | "i64.reinterpret_f64" | "f32.reinterpret_i32" | "f64.reinterpret_i64" |
+                                int_type ~ ".extend8_s" | int_type ~ ".extend16_s" | "i64.extend32_s" }
+
+plain_instr     =  { control_plain_instr | ref_plain_instr | parametetric_plain_instr | variable_plain_instr | table_plain_instr | memory_plain_instr | numeric_plain_instr }
+
+expr    = { "(" ~ instr ~ ")" | 
+            "(" ~ instr ~ expr+ ~ ")" |
+            "(" ~ "block" ~ label ~ block_type ~ instr* ~ ")" |
+            "(" ~ "loop" ~ label ~ block_type ~ instr* ~ ")" |
+            "(" ~ "if" ~ label ~ block_type ~ expr+ ~ "(" ~ "then" ~ instr* ~ ")" ~ ( "(" ~ "else" ~ instr* )? ~ ")" }
+
+// TYPES
+
+int_type     = { "i32" | "i64" }
+float_type   = { "f32" | "f64" }
+num_type     = { int_type | float_type }
+ref_type     = { "funcref" | "externref" }
+heap_type    = { "func" | "heap" }
+value_type   = { num_type | ref_type }
+
+func_type   = { "(" ~ "func" ~ param* ~ result* ~ ")" }
+param       = { "(" ~ "param" ~ id? ~ value_type ~ ")" | "(" ~ "param" ~ value_type* ~ ")" }
+result      = { "(" ~ "result" ~ value_type* ~ ")" }
+limits      = { nat ~ nat? }
+mem_type    = { limits }
+table_type  = { limits ~ ref_type }
+global_type = { value_type | "(" ~ "mut" ~ value_type ~ ")" }
+
+// VALUES
+
+num             = @{ ASCII_DIGIT ~ "_"? ~ num | ASCII_DIGIT }
+hexnum          = @{ ASCII_HEX_DIGIT ~ "_"? ~ hexnum | ASCII_HEX_DIGIT }
+nat             = ${ "0x" ~ hexnum | num }
+int             = ${ nat | "+" ~ nat | "-" ~ nat }
+float           = ${ (num ~ ("." ~ num)? ~ ( "e"|"E" ~ num)?) | ( "0x" ~ hexnum ~ ("." ~ hexnum)? ~ ( "p"|"P" ~ num)?) }
+
+char        = @{ !( "\u{7F}" | "\"" | "\\"  ) ~ '\u{20}'..'\u{10FFFF}' }
+string      = ${ "\"" ~ ( char | "\\\n" | "\\\t" | "\\\\" | "\\'" | "\\\"" | ( "\\" ~ ASCII_HEX_DIGIT ~ ASCII_HEX_DIGIT ) | ( "\\u{" ~ hexnum ~ "}" ) )* ~ "\"" }
+
+id = @{ "$" ~ ( ASCII_DIGIT | ASCII_ALPHA | "!"  |  "#"  |  "$"  |  "%"  |  "&"  |  "'"  |  "*"  |  "+"  |  "-"  |  "."  |  "/" | ":"  |  "<"  |  "="  |  ">"  |  "?"  |  "@"  |  "\\"  |  "^"  |  "_"  |  "`"  |  "|"  |  "~" )+ }
+
+block_comment   = _{ "(;" ~ (block_comment | !";)" ~ ANY)* ~ ";)" }
+WHITESPACE      = _{ " " | "\t" | "\r" | "\n" }
+COMMENT         = _{ block_comment | (";;" ~ (!"\n" ~ ANY)*) }

@@ -1,6 +1,12 @@
-#![cfg_attr(not(test), no_std)]
-
 pub mod module;
+pub mod value;
+
+#[macro_use]
+extern crate pest_derive;
+
+#[derive(Parser)]
+#[grammar = "wast.pest"]
+pub struct WastParser;
 
 #[cfg(test)]
 mod tests {
